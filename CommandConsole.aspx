@@ -2,86 +2,54 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Check Admin Rights & App Identity</title>
+    <title>App Diagnostics</title>
     <style>
         body {
             font-family: Consolas, monospace;
-            background: #f0f0f0;
+            background: #f8f8f8;
             padding: 40px;
         }
-        #resultBox {
+        pre {
             background: #fff;
-            color: #000;
-            width: 100%;
-            height: 400px;
-            padding: 10px;
-            white-space: pre;
-            font-size: 14px;
+            padding: 20px;
             border: 1px solid #ccc;
-            overflow: auto;
+            white-space: pre-wrap;
         }
-        .highlight {
-            color: green;
-            font-weight: bold;
-        }
-        .notadmin {
-            color: red;
-            font-weight: bold;
+        h2 {
+            margin-bottom: 10px;
         }
     </style>
 </head>
 <body>
-    <h2>Check Admin Status & IIS App Identity</h2>
-
-    <div id="resultBox">
+    <h2>📋 IIS / ASP.NET Diagnostic Info</h2>
+    <pre>
 <%
     try
     {
-        string userName = Environment.UserName;
-        string identityName = System.Security.Principal.WindowsIdentity.GetCurrent().Name;
+        string scheme = Request.Url.Scheme;
+        string host = Request.Url.Host;
+        int port = Request.Url.Port;
+        string appPath = Request.ApplicationPath;
+        string fullUrl = scheme + "://" + host + ((port != 80 && port != 443) ? ":" + port : "") + appPath;
 
-        Response.Write("✔️ Environment.UserName: " + userName + "\n");
-        Response.Write("✔️ WindowsIdentity:      " + identityName + "\n\n");
+        if (!fullUrl.EndsWith("/")) fullUrl += "/";
 
-        string command = @"C:\Windows\System32\whoami.exe";
-        string args = "/groups";
+        Response.Write("📌 Homepage URL:     " + fullUrl + "\n");
+        Response.Write("📁 Physical Path:     " + Server.MapPath("~/") + "\n");
+        Response.Write("🧑 Environment.User:  " + Environment.UserName + "\n");
+        Response.Write("🔐 Identity:           " + System.Security.Principal.WindowsIdentity.GetCurrent().Name + "\n\n");
 
-        System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo();
-        psi.FileName = command;
-        psi.Arguments = args;
-        psi.RedirectStandardOutput = true;
-        psi.RedirectStandardError = true;
-        psi.UseShellExecute = false;
-        psi.CreateNoWindow = true;
-
-        using (System.Diagnostics.Process process = System.Diagnostics.Process.Start(psi))
-        {
-            string output = process.StandardOutput.ReadToEnd();
-            string error = process.StandardError.ReadToEnd();
-            process.WaitForExit();
-
-            bool isAdmin = output.ToLower().Contains("builtin\\administrators") && output.ToLower().Contains("enabled");
-
-            string fullOutput = output + (string.IsNullOrWhiteSpace(error) ? "" : "\n[ERROR]\n" + error);
-            Response.Write("\n🧾 whoami /groups output:\n\n");
-            Response.Write(Server.HtmlEncode(fullOutput));
-
-            Response.Write("\n\n🔍 Admin Status:\n");
-            if (isAdmin)
-            {
-                Response.Write("<span class='highlight'>✅ User IS in the Administrators group</span>");
-            }
-            else
-            {
-                Response.Write("<span class='notadmin'>❌ User is NOT in the Administrators group</span>");
-            }
-        }
+        Response.Write("🌐 Host:               " + host + "\n");
+        Response.Write("🔗 Port:               " + port + "\n");
+        Response.Write("📄 App Path:           " + appPath + "\n");
+        Response.Write("🔗 Full Request URL:   " + Request.Url.ToString() + "\n");
+        Response.Write("📑 Raw URL:            " + Request.RawUrl + "\n");
     }
     catch (Exception ex)
     {
-        Response.Write("<span style='color:red'>ERROR:</span><br/>" + Server.HtmlEncode(ex.ToString()));
+        Response.Write("❌ ERROR: " + ex.ToString());
     }
 %>
-    </div>
+    </pre>
 </body>
 </html>
