@@ -1,22 +1,21 @@
-<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="ListFiles.aspx.cs" Inherits="YourNamespace.ListFiles" %>
-
+<%@ Page Language="C#" %>
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head runat="server">
-    <title>Directory File List</title>
+<html>
+<head>
+    <title>File List (No CodeBehind)</title>
     <style>
         body {
             font-family: Arial;
-            background-color: #f0f0f0;
             padding: 40px;
+            background: #f4f4f4;
         }
         #fileList {
-            background-color: white;
+            background: white;
             padding: 20px;
             border-radius: 8px;
-            width: 500px;
+            max-width: 600px;
             margin: auto;
-            box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+            box-shadow: 0px 0px 10px #ccc;
         }
         h2 {
             text-align: center;
@@ -27,11 +26,22 @@
     </style>
 </head>
 <body>
-    <form id="form1" runat="server">
-        <div id="fileList">
-            <h2>Files in Current Directory</h2>
-            <asp:Literal ID="LiteralFiles" runat="server" />
-        </div>
-    </form>
+    <div id="fileList">
+        <h2>Files in This Directory</h2>
+        <ul>
+            <%
+                string path = Server.MapPath("./");
+                string[] files = System.IO.Directory.GetFiles(path);
+
+                foreach (string file in files)
+                {
+                    string fileName = System.IO.Path.GetFileName(file);
+            %>
+                    <li><%= fileName %></li>
+            <%
+                }
+            %>
+        </ul>
+    </div>
 </body>
 </html>
