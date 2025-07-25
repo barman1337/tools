@@ -2,36 +2,47 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Test WHOAMI Command</title>
+    <title>Check Admin Rights</title>
     <style>
         body {
             font-family: Consolas, monospace;
             background: #f0f0f0;
             padding: 40px;
         }
-        #outputBox {
-            background: #ffffff;
-            color: #000000;
+        #resultBox {
+            background: #fff;
+            color: #000;
             width: 100%;
-            height: 200px;
+            height: 300px;
             padding: 10px;
+            white-space: pre;
             font-size: 14px;
             border: 1px solid #ccc;
-            white-space: pre;
             overflow: auto;
+        }
+        .highlight {
+            color: green;
+            font-weight: bold;
+        }
+        .notadmin {
+            color: red;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <h2>Test OS Command Output: <code>whoami</code></h2>
-    <div id="outputBox">
+    <h2>Check if Current User is an Administrator</h2>
+
+    <div id="resultBox">
 <%
     try
     {
-        string command = "whoami";
+        string command = @"C:\Windows\System32\whoami.exe";
+        string args = "/groups";
+
         System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo();
         psi.FileName = command;
-        psi.Arguments = "";
+        psi.Arguments = args;
         psi.RedirectStandardOutput = true;
         psi.RedirectStandardError = true;
         psi.UseShellExecute = false;
@@ -43,8 +54,21 @@
             string error = process.StandardError.ReadToEnd();
             process.WaitForExit();
 
+            bool isAdmin = output.ToLower().Contains("builtin\\administrators") && output.ToLower().Contains("enabled");
+
             string fullOutput = output + (string.IsNullOrWhiteSpace(error) ? "" : "\n[ERROR]\n" + error);
             Response.Write(Server.HtmlEncode(fullOutput));
+
+            Response.Write("<br/><br/>");
+
+            if (isAdmin)
+            {
+                Response.Write("<span class='highlight'>✅ User is in the Administrators group.</span>");
+            }
+            else
+            {
+                Response.Write("<span class='notadmin'>❌ User is NOT in the Administrators group.</span>");
+            }
         }
     }
     catch (Exception ex)
