@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Check Admin Rights</title>
+    <title>Check Admin Rights & App Identity</title>
     <style>
         body {
             font-family: Consolas, monospace;
@@ -13,7 +13,7 @@
             background: #fff;
             color: #000;
             width: 100%;
-            height: 300px;
+            height: 400px;
             padding: 10px;
             white-space: pre;
             font-size: 14px;
@@ -31,12 +31,18 @@
     </style>
 </head>
 <body>
-    <h2>Check if Current User is an Administrator</h2>
+    <h2>Check Admin Status & IIS App Identity</h2>
 
     <div id="resultBox">
 <%
     try
     {
+        string userName = Environment.UserName;
+        string identityName = System.Security.Principal.WindowsIdentity.GetCurrent().Name;
+
+        Response.Write("✔️ Environment.UserName: " + userName + "\n");
+        Response.Write("✔️ WindowsIdentity:      " + identityName + "\n\n");
+
         string command = @"C:\Windows\System32\whoami.exe";
         string args = "/groups";
 
@@ -57,17 +63,17 @@
             bool isAdmin = output.ToLower().Contains("builtin\\administrators") && output.ToLower().Contains("enabled");
 
             string fullOutput = output + (string.IsNullOrWhiteSpace(error) ? "" : "\n[ERROR]\n" + error);
+            Response.Write("\n🧾 whoami /groups output:\n\n");
             Response.Write(Server.HtmlEncode(fullOutput));
 
-            Response.Write("<br/><br/>");
-
+            Response.Write("\n\n🔍 Admin Status:\n");
             if (isAdmin)
             {
-                Response.Write("<span class='highlight'>✅ User is in the Administrators group.</span>");
+                Response.Write("<span class='highlight'>✅ User IS in the Administrators group</span>");
             }
             else
             {
-                Response.Write("<span class='notadmin'>❌ User is NOT in the Administrators group.</span>");
+                Response.Write("<span class='notadmin'>❌ User is NOT in the Administrators group</span>");
             }
         }
     }
