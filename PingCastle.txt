@@ -1,14 +1,56 @@
-# Path to your server list file
+# Define paths
 $serverListPath = "C:\Path\To\servers.txt"
+$outputFilePath = "C:\Path\To\AccessibleServers.txt"
 
-# Read server names from the file
+# Clear previous output
+if (Test-Path $outputFilePath) {
+    Remove-Item $outputFilePath
+}
+
+# Load server list
 $servers = Get-Content -Path $serverListPath
 
+# Create synchronized output collection
+$outputLock = New-Object Object
+$jobs = @()
+
+# Create RunspacePool
+$runspacePool = [runspacefactory]::CreateRunspacePool(1, 10)
+$runspacePool.Open()
+
 foreach ($server in $servers) {
-    $path = "\\$server\C$"
-    if (Test-Path $path) {
-        Write-Host "Access to C$ on $server: SUCCESS" -ForegroundColor Green
-    } else {
-        Write-Host "Access to C$ on $server: FAILED" -ForegroundColor Red
+    $powershell = [powershell]::Create()
+    $powershell.RunspacePool = $runspacePool
+
+    $null = $powershell.AddScript({
+        param ($serverName, $outFile, $lockObj)
+        $path = "\\$serverName\C$"
+        if (Test-Path $path) {
+            Write-Host "Access to C$ on $serverName: SUCCESS" -ForegroundColor Green
+            [System.Threading.Monitor]::Enter($lockObj)
+            try {
+                $serverName | Out-File -FilePath $outFile -Append
+            } finally {
+                [System.Threading.Monitor]::Exit($lockObj)
+            }
+        } else {
+            Write-Host "Access to C$ on $serverName: FAILED" -ForegroundColor Red
+        }
+    }).AddArgument($server).AddArgument($outputFilePath).AddArgument($outputLock)
+
+    $job = @{
+        Pipe = $powershell
+        AsyncResult = $powershell.BeginInvoke()
     }
+
+    $jobs += $job
 }
+
+# Wait for all runspaces to finish
+foreach ($job in $jobs) {
+    $job.Pipe.EndInvoke($job.AsyncResult)
+    $job.Pipe.Dispose()
+}
+
+$runspacePool.Close()
+$runspacePool.Dispose()
